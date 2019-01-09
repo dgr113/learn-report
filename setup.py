@@ -21,7 +21,12 @@ setup(
     author_email='dmitry-gr87@yandex.ru',
     license='MIT',
     packages=find_packages(),
-    install_requires=['pandas', 'numpy', 'matplotlib'],
+    install_requires=[
+        'pandas',
+        'numpy',
+        'matplotlib',
+        'more-itertools'
+    ],
     include_package_data=True,
     zip_safe=False
 )

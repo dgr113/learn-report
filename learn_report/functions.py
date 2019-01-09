@@ -15,6 +15,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from argparse import ArgumentParser
+from more_itertools import always_iterable
 
 VECTORIZED_ARRAY_TYPE = Union[np.array, pd.Series]
 
@@ -53,8 +54,7 @@ def get_axis_color_mask(
 
 
 def create_report(
-        X: pd.DataFrame,
-        X_colors_mask: Union[pd.DataFrame, None] = None,
+        *tables_desc: Tuple[pd.DataFrame, Union[pd.DataFrame, None]],
         output_format: str = 'pdf'
 
 ) -> bytes:
@@ -62,17 +62,36 @@ def create_report(
     """ Сформировать отчет
 
         https://stackoverflow.com/questions/9622163/save-plot-to-image-file-instead-of-displaying-it-using-matplotlib
+
+        :param tables_desc: Описания таблиц для отчета вида [(<таблица>, <цвета>), ...]
+        :param output_format: Формат отчета
     """
 
-    fig, ax = plt.subplots()
+    ### Области для таблиц
+    nrows = len(tables_desc)
+    fig, axes_list = plt.subplots(nrows=nrows, ncols=1)
 
-    ### Скрыть оси
+    ### Скрыть оси графика
     fig.patch.set_visible(False)
-    ax.axis('off')
-    ax.axis('tight')
 
-    ### Сформировать таблицу
-    ax.table(cellText=X.values, cellColours=X_colors_mask, colLabels=X.columns, loc='center')
+    ### Заполняем каждую область своей таблицей из <tables_desc>
+    ### обрабатываем возможность 1 (не итерируемой оси), в случае если <tables_desc> состоит из одного элемента
+    for n, ax in enumerate(always_iterable(axes_list)):
+        ax.axis('off')
+        ax.axis('off')
+        ax.axis('tight')
+        ax.axis('tight')
+
+        ### Сформировать таблицу из ее описания
+        ### обрабатываем возможность получения одиночного <DataFrame>
+        table_desc = tables_desc[n]
+        try:
+            table, colors = table_desc[0], table_desc[1]
+        except (TypeError, ValueError, KeyError):
+            table, colors, = table_desc, None
+
+        ax.table(cellText=table.values, cellColours=colors, colLabels=table.columns, loc='upper center')
+
 
     ### Записать отчет в файловый поток
     with io.BytesIO() as f:
@@ -92,7 +111,8 @@ def send_report_email(
         username: str,
         password: str,
         send_from: str,
-        send_to: List[str],
+        send_to: Union[str, List[str]],
+        report_format: str,
         verbose_mode: bool = False,
 
 ) -> None:
@@ -101,12 +121,12 @@ def send_report_email(
 
     msg = MIMEMultipart()
     msg['From'] = send_from
-    msg['To'] = ', '.join(send_to)
+    msg['To'] = ', '.join(always_iterable(send_to))
     msg['Subject'] = 'Test report from service'
     msg.attach(MIMEText('Test message'))
 
     for n, report in enumerate(reports, start=1):
-        filename = 'report_{}.pdf'.format(str(n))
+        filename = 'report_{0}.{1}'.format(str(n), report_format)
         attachedfile = MIMEApplication(report)
         attachedfile.add_header('content-disposition', 'attachment', filename=filename)
         msg.attach(attachedfile)
@@ -122,30 +142,39 @@ def send_report_email(
         if verbose_mode:
             print('Warning! Mail server not supported TTLS', file=sys.stderr)
 
-    smtp.login(username, password)
-    smtp.sendmail(send_from, send_to, msg.as_string())
-    smtp.close()
+    try:
+        smtp.login(username, password)
+        smtp.sendmail(send_from, send_to, msg.as_string())
+        smtp.close()
+    except smtplib.SMTPAuthenticationError:
+        print('Auth failed!', file=sys.stderr)
+    except Exception:
+        print('Unexpected error!', file=sys.stderr)
+
+    finally:
+        smtp.close()
 
 
 
 
-def get_test_set() -> List[Tuple[pd.DataFrame, pd.DataFrame]]:
+
+
+
+
+def _get_test_set():
     """ Тестовый набор данных для отчета """
 
-    results = []
+    X1 = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [5, 6, 7, 8]})
+    y1 = np.array([1, 2, 2, 3])
+    colors_mask1 = get_axis_color_mask(X1, y1, color_mapping={1: 'green', 2: 'red'})
 
-    for i in range(3):
-        X = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [5, 6, 7, 8]})
-        y = np.array([1, 2, 2, 3])
 
-        color_mapping = {1: 'green', 2: 'red'}
-        colors_mask = get_axis_color_mask(X, y, color_mapping=color_mapping)
-        metainfo = [
-            {'original': '', 'analized': ''},
-            {'original': '', 'analized': ''},
-        ]
+    X2 = pd.DataFrame({'original': [111], 'parsed': [222]})
 
-        results.append((X, colors_mask))
+
+    results = [
+        [(X1, colors_mask1), X2]
+    ]*2
 
     return results
 
@@ -159,8 +188,9 @@ if __name__ == "__main__":
     parser.add_argument('-port', '--port', default=465, type=int)
     parser.add_argument('-u', '--username', type=str)
     parser.add_argument('-p', '--password', type=str)
-    parser.add_argument('-f', '--from-addr', dest='from_addr', type=str)
-    parser.add_argument('-t', '--to-addr', dest='to_addr', type=str)
+    parser.add_argument('-f', '--format', dest='report_format', type=str, default='pdf')
+    parser.add_argument('-from', '--from-addr', dest='from_addr', type=str)
+    parser.add_argument('-to', '--to-addr', dest='to_addr', nargs='*', type=str)
 
     args = parser.parse_args()
     user_name = args.username or input('Логин: ')
@@ -169,8 +199,8 @@ if __name__ == "__main__":
 
     with Pool() as pool:
         reports = pool.starmap(
-            partial(create_report, output_format='pdf'),
-            get_test_set()
+            partial(create_report, output_format=args.report_format),
+            _get_test_set()
         )
 
         send_report_email(
@@ -180,5 +210,6 @@ if __name__ == "__main__":
             username=user_name,
             password=user_pass,
             send_from=args.from_addr,
-            send_to=[args.to_addr]
+            send_to=args.to_addr,
+            report_format=args.report_format
         )
