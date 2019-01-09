@@ -187,7 +187,7 @@ def _get_test_set():
 
     results = [
         [(X1, colors_mask1), X2]
-    ]*5
+    ]*100
 
     return results
 
