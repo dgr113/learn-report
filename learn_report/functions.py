@@ -53,7 +53,7 @@ def get_axis_color_mask(
 
 
 
-def create_report(
+def build_report(
         *tables_desc: Tuple[pd.DataFrame, Union[pd.DataFrame, None]],
         output_format: str = 'pdf',
         dpi: int = 300
@@ -71,8 +71,7 @@ def create_report(
 
     ### Области для таблиц
     nrows = len(tables_desc)
-    fig, axes_list = plt.subplots(nrows=nrows, ncols=1)
-    # fig, axes = plt.subplots(nrows, ncols, figsize=(width,height))  ### Регулировка размера областей изображения
+    fig, axes_list = plt.subplots(nrows=nrows, ncols=1, figsize=(20, 40))
 
     ### Скрыть оси графика
     fig.patch.set_visible(False)
@@ -98,8 +97,9 @@ def create_report(
 
     ### Записать отчет в файловый поток
     with io.BytesIO() as f:
-        plt.savefig(fname=f, figure=fig, format=output_format, dpi=dpi)
-        plt.close(fig)
+        plt.savefig(fname=f, figure=fig, format=output_format)
+        plt.clf()
+        plt.close()
 
         result = f.getvalue()
         return result
@@ -167,8 +167,15 @@ def send_report_email(
 def _get_test_set():
     """ Тестовый набор данных для отчета """
 
-    X1 = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [5, 6, 7, 8]})
-    y1 = np.array([1, 2, 2, 3])
+    X1 = pd.DataFrame({
+        'A': [1, 2, 3, 4]*100,
+        'B': [5, 6, 7, 8]*100,
+        'C': [5, 6, 7, 8]*100,
+        'D': [5, 6, 7, 8]*100,
+        'E': [5, 6, 7, 8]*100,
+        'F': [5, 6, 7, 8]*100,
+    })
+    y1 = np.array([1, 2, 2, 3]*100)
     colors_mask1 = get_axis_color_mask(X1, y1, color_mapping={1: 'green', 2: 'red'})
 
 
@@ -177,7 +184,7 @@ def _get_test_set():
 
     results = [
         [(X1, colors_mask1), X2]
-    ]*2
+    ]
 
     return results
 
@@ -203,7 +210,7 @@ if __name__ == "__main__":
 
     with Pool() as pool:
         reports = pool.starmap(
-            partial(create_report, output_format=args.report_format, dpi=args.dpi),
+            partial(build_report, output_format=args.report_format, dpi=args.dpi),
             _get_test_set()
         )
 
