@@ -5,6 +5,7 @@ import sys
 import smtplib
 import numpy as np
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
 from functools import partial
 from multiprocessing import Pool
@@ -16,9 +17,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from argparse import ArgumentParser
 from more_itertools import always_iterable
+matplotlib.use('TkCairo')
 
 VECTORIZED_ARRAY_TYPE = Union[np.array, pd.Series]
-
 
 
 
@@ -71,7 +72,7 @@ def build_report(
 
     ### Области для таблиц
     nrows = len(tables_desc)
-    fig, axes_list = plt.subplots(nrows=nrows, ncols=1, figsize=(20, 40))
+    fig, axes_list = plt.subplots(nrows=nrows, ncols=1)
 
     ### Скрыть оси графика
     fig.patch.set_visible(False)
@@ -94,6 +95,8 @@ def build_report(
 
         ax.table(cellText=table.values, cellColours=colors, colLabels=table.columns, loc='upper center')
 
+    # plt.plot()
+    # plt.show()
 
     ### Записать отчет в файловый поток
     with io.BytesIO() as f:
@@ -184,7 +187,7 @@ def _get_test_set():
 
     results = [
         [(X1, colors_mask1), X2]
-    ]
+    ]*5
 
     return results
 
