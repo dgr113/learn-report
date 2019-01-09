@@ -55,7 +55,8 @@ def get_axis_color_mask(
 
 def create_report(
         *tables_desc: Tuple[pd.DataFrame, Union[pd.DataFrame, None]],
-        output_format: str = 'pdf'
+        output_format: str = 'pdf',
+        dpi: int = 100
 
 ) -> bytes:
 
@@ -96,7 +97,7 @@ def create_report(
 
     ### Записать отчет в файловый поток
     with io.BytesIO() as f:
-        plt.savefig(fname=f, figure=fig, format=output_format, dpi=100)
+        plt.savefig(fname=f, figure=fig, format=output_format, dpi=dpi)
         plt.close(fig)
 
         result = f.getvalue()
@@ -190,6 +191,7 @@ if __name__ == "__main__":
     parser.add_argument('-u', '--username', type=str)
     parser.add_argument('-p', '--password', type=str)
     parser.add_argument('-f', '--format', dest='report_format', type=str, default='pdf')
+    parser.add_argument('-dpi', '--dpi', type=int, default=100)
     parser.add_argument('-from', '--from-addr', dest='from_addr', type=str, default='dmitry-gr87@yandex.ru')
     parser.add_argument('-to', '--to-addr', dest='to_addr', nargs='*', type=str, default='dmitry-gr87@yandex.ru')
 
@@ -200,7 +202,7 @@ if __name__ == "__main__":
 
     with Pool() as pool:
         reports = pool.starmap(
-            partial(create_report, output_format=args.report_format),
+            partial(create_report, output_format=args.report_format, dpi=args.dpi),
             _get_test_set()
         )
 
