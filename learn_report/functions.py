@@ -56,7 +56,7 @@ def get_axis_color_mask(
 def create_report(
         *tables_desc: Tuple[pd.DataFrame, Union[pd.DataFrame, None]],
         output_format: str = 'pdf',
-        dpi: int = 100
+        dpi: int = 300
 
 ) -> bytes:
 
@@ -66,6 +66,7 @@ def create_report(
 
         :param tables_desc: Описания таблиц для отчета вида [(<таблица>, <цвета>), ...]
         :param output_format: Формат отчета
+        :param dpi: DPI
     """
 
     ### Области для таблиц
@@ -191,7 +192,7 @@ if __name__ == "__main__":
     parser.add_argument('-u', '--username', type=str)
     parser.add_argument('-p', '--password', type=str)
     parser.add_argument('-f', '--format', dest='report_format', type=str, default='pdf')
-    parser.add_argument('-dpi', '--dpi', type=int, default=100)
+    parser.add_argument('-dpi', '--dpi', type=int, default=300)
     parser.add_argument('-from', '--from-addr', dest='from_addr', type=str, default='dmitry-gr87@yandex.ru')
     parser.add_argument('-to', '--to-addr', dest='to_addr', nargs='*', type=str, default='dmitry-gr87@yandex.ru')
 
