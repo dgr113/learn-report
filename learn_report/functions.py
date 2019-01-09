@@ -70,6 +70,7 @@ def create_report(
     ### Области для таблиц
     nrows = len(tables_desc)
     fig, axes_list = plt.subplots(nrows=nrows, ncols=1)
+    # fig, axes = plt.subplots(nrows, ncols, figsize=(width,height))  ### Регулировка размера областей изображения
 
     ### Скрыть оси графика
     fig.patch.set_visible(False)
@@ -95,7 +96,7 @@ def create_report(
 
     ### Записать отчет в файловый поток
     with io.BytesIO() as f:
-        plt.savefig(fname=f, figure=fig, format=output_format)
+        plt.savefig(fname=f, figure=fig, format=output_format, dpi=100)
         plt.close(fig)
 
         result = f.getvalue()
@@ -189,8 +190,8 @@ if __name__ == "__main__":
     parser.add_argument('-u', '--username', type=str)
     parser.add_argument('-p', '--password', type=str)
     parser.add_argument('-f', '--format', dest='report_format', type=str, default='pdf')
-    parser.add_argument('-from', '--from-addr', dest='from_addr', type=str)
-    parser.add_argument('-to', '--to-addr', dest='to_addr', nargs='*', type=str)
+    parser.add_argument('-from', '--from-addr', dest='from_addr', type=str, default='dmitry-gr87@yandex.ru')
+    parser.add_argument('-to', '--to-addr', dest='to_addr', nargs='*', type=str, default='dmitry-gr87@yandex.ru')
 
     args = parser.parse_args()
     user_name = args.username or input('Логин: ')
