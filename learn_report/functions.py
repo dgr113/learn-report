@@ -56,6 +56,18 @@ def get_axis_color_mask(
 
 
 
+def _get_box_coords(x, start_col: int = 0, end_col: int = 1) -> List[Tuple[int, int]]:
+    """ Получить координаты левой верхней и правой нижней точки прямоугольной области """
+
+    results = list(zip(
+        [start_col, end_col],
+        np.percentile(x, [0, 100]).astype(int)
+    ))
+
+    return results
+
+
+
 def get_styles_list_from_mask(mask: pd.DataFrame, style_names: str = 'BACKGROUND') -> List[list]:
     """ Получить список стилей из маски """
 
@@ -64,12 +76,7 @@ def get_styles_list_from_mask(mask: pd.DataFrame, style_names: str = 'BACKGROUND
 
     ### Формирование измененного фрейма данных
     indexes_by_colors = get_consecutive_segments(mask)
-    colors_boundary_coord = indexes_by_colors.apply(
-        lambda x: list(zip(
-            [start_col, end_col],
-            np.percentile(x, [0, 100]).astype(int)
-        ))
-    )
+    colors_boundary_coord = indexes_by_colors.apply(partial(_get_box_coords, start_col=start_col, end_col=end_col))
 
     ### Переиндексация до нужного порядка
     colors_boundary_coord = colors_boundary_coord.reset_index(level=0)
@@ -87,6 +94,7 @@ def get_styles_list_from_mask(mask: pd.DataFrame, style_names: str = 'BACKGROUND
 
 
 
+# noinspection PyUnusedLocal
 def build_report(
         *tables_desc: Tuple[pd.DataFrame, Union[pd.DataFrame, None]],
         output_format: str = 'pdf',
@@ -148,9 +156,7 @@ def build_report(
 
 
 
-
-
-
+# noinspection PyShadowingNames
 def send_report_email(
         *reports,
         host: str,
