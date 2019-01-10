@@ -22,10 +22,14 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=[
-        'pandas',
         'numpy',
-        'matplotlib',
-        'more-itertools'
+        'pandas',
+        'reportlab',
+        'more-itertools',
+        'helpful-vectors'
+    ],
+    dependency_links=[
+        'git+https://github.com/dgr113/helpful-vectors.git'
     ],
     include_package_data=True,
     zip_safe=False
