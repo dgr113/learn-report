@@ -6,11 +6,11 @@ from setuptools import setup, find_packages
 
 setup(
     name='learn_report',
-    version='0.3a',
+    version='0.4.1',
     description='Learn reporter',
     long_description='Learn reporter',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.7',
         'Topic :: Data Processing :: Iterators :: Mail :: Utility',
@@ -25,13 +25,18 @@ setup(
         'numpy',
         'pandas',
         'reportlab',
+        'jsonschema',
         'more-itertools',
-        'helpful-vectors',
-        'jsonschema'
+        'helpful-vectors'
     ],
     dependency_links=[
         'git+https://github.com/dgr113/helpful-vectors.git'
     ],
+    entry_points={
+        'console_scripts': [
+            'learn-report-cli=cli'
+        ],
+    },
     include_package_data=True,
     zip_safe=False
 )
