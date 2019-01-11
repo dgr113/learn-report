@@ -28,7 +28,10 @@ setup(
         'reportlab',
         'jsonschema',
         'more-itertools',
-        'helpful-vectors'
+        'helpful-vectors==0.4.1'
+    ],
+    dependency_links=[
+        'https://github.com/dgr113/helpful-vectors/archive/master.zip#egg=helpful_vectors-0.4.1'
     ],
     entry_points={
         'console_scripts': [
