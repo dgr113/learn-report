@@ -4,6 +4,7 @@ from setuptools import setup, find_packages
 
 
 
+
 setup(
     name='learn_report',
     version='0.4.1',
@@ -30,7 +31,7 @@ setup(
         'helpful-vectors'
     ],
     dependency_links=[
-        'git+https://github.com/dgr113/helpful-vectors.git'
+        'http://github.com/dgr113/helpful-vectors/tarball/master#egg=package-1.0'
     ],
     entry_points={
         'console_scripts': [
