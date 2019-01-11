@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name='learn_report',
+    name='learn-report',
     version='0.4.1',
     description='Learn reporter',
     long_description='Learn reporter',
@@ -30,12 +30,9 @@ setup(
         'more-itertools',
         'helpful-vectors'
     ],
-    dependency_links=[
-        'http://github.com/dgr113/helpful-vectors/tarball/master#egg=package-1.0'
-    ],
     entry_points={
         'console_scripts': [
-            'learn-report-cli=cli'
+            'learn-report-cli=learn_report.cli:main'
         ],
     },
     include_package_data=True,

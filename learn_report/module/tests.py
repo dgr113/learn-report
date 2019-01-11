@@ -7,8 +7,8 @@ import pandas as pd
 from dataclasses import asdict
 from datetime import datetime, date, time
 from typing import Any
-from learn_report.functions import get_axis_color_mask
-from learn_report.data_structs import TableDesc
+from learn_report.module.functions import get_axis_color_mask
+from learn_report.module.data_structs import TableDesc
 
 
 

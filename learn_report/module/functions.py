@@ -16,8 +16,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from more_itertools import always_iterable, collapse
 from helpful_vectors.functions import get_consecutive_segments
-from learn_report.data_structs import TableDesc
-from learn_report.type_hints import MAIL_ADDRESSES_TYPE, STYLES_LIST_TYPE, TABLE_MASK_TYPE, VECTORIZED_ARRAY_TYPE
+from learn_report.module.data_structs import TableDesc
+from learn_report.module.type_hints import MAIL_ADDRESSES_TYPE, STYLES_LIST_TYPE, TABLE_MASK_TYPE, VECTORIZED_ARRAY_TYPE
 
 
 

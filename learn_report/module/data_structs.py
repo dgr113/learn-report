@@ -1,7 +1,7 @@
 # coding: utf-8
 
 from dataclasses import make_dataclass
-from learn_report.type_hints import TABLE_DATA_TYPE, TABLE_MASK_TYPE
+from learn_report.module.type_hints import TABLE_DATA_TYPE, TABLE_MASK_TYPE
 
 
 

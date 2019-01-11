@@ -10,10 +10,10 @@ from argparse import ArgumentParser
 from functools import partial
 from getpass import getpass
 from multiprocessing.pool import Pool
-from learn_report.data_structs import TableDesc
-from learn_report.functions import build_report, send_report_email
-from learn_report.settings import SCHEMA_MAPPING, THREAD_WORKERS_COUNT
-from learn_report.tests import get_test_set
+from learn_report.module.data_structs import TableDesc
+from learn_report.module.functions import build_report, send_report_email
+from learn_report.module.settings import SCHEMA_MAPPING, THREAD_WORKERS_COUNT
+from learn_report.module.tests import get_test_set
 
 
 
@@ -44,7 +44,7 @@ def dataclass_pickle_prepair(*classes) -> None:
 
 
 
-if __name__ == "__main__":
+def main():
     parser = ArgumentParser()
     parser.add_argument('-host', '--host', default='smtp.yandex.com', type=str)
     parser.add_argument('-port', '--port', default=465, type=int)
@@ -91,3 +91,9 @@ if __name__ == "__main__":
                 send_to=args.to_addr,
                 report_format=args.report_format
             )
+
+
+
+
+if __name__ == "__main__":
+    main()
