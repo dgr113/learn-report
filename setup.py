@@ -26,7 +26,8 @@ setup(
         'pandas',
         'reportlab',
         'more-itertools',
-        'helpful-vectors'
+        'helpful-vectors',
+        'jsonschema'
     ],
     dependency_links=[
         'git+https://github.com/dgr113/helpful-vectors.git'

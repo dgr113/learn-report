@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+              "data": {"type": "array"},
+              "mask": {"type":  "array"}
+            },
+            "required": ["data", "mask"]
+        }
+      }
+    }
+  },
+  "required": ["data"]
+}

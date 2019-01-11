@@ -9,18 +9,15 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from functools import partial
-from multiprocessing import Pool
-from getpass import getpass
 from itertools import repeat
 from typing import Union, List, Tuple
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-from argparse import ArgumentParser
 from more_itertools import always_iterable, collapse
 from helpful_vectors.functions import get_consecutive_segments
-
-VECTORIZED_ARRAY_TYPE = Union[np.array, pd.Series]
+from learn_report.data_structs import TableDesc
+from learn_report.type_hints import MAIL_ADDRESSES_TYPE, STYLES_LIST_TYPE, TABLE_MASK_TYPE, VECTORIZED_ARRAY_TYPE
 
 
 
@@ -68,26 +65,30 @@ def _get_box_coords(x, start_col: int = 0, end_col: int = 1) -> List[Tuple[int, 
 
 
 
-def get_styles_list_from_mask(mask: pd.DataFrame, style_names: str = 'BACKGROUND') -> List[list]:
+
+def get_styles_list_from_mask(mask: TABLE_MASK_TYPE, style_names: str = 'BACKGROUND') -> STYLES_LIST_TYPE:
     """ Получить список стилей из маски """
 
-    start_col = 0
-    end_col = mask.shape[1]
+    if not mask.empty and mask is not None:
+        start_col = 0
+        end_col = mask.shape[1]
 
-    ### Формирование измененного фрейма данных
-    indexes_by_colors = get_consecutive_segments(mask)
-    colors_boundary_coord = indexes_by_colors.apply(partial(_get_box_coords, start_col=start_col, end_col=end_col))
+        ### Формирование измененного фрейма данных
+        indexes_by_colors = get_consecutive_segments(mask)
+        colors_boundary_coord = indexes_by_colors.apply(partial(_get_box_coords, start_col=start_col, end_col=end_col))
 
-    ### Переиндексация до нужного порядка
-    colors_boundary_coord = colors_boundary_coord.reset_index(level=0)
-    non_index_columns = colors_boundary_coord.columns.difference([0]).tolist()
-    colors_boundary_coord = colors_boundary_coord.reindex(columns=non_index_columns + [0])
+        ### Переиндексация до нужного порядка
+        colors_boundary_coord = colors_boundary_coord.reset_index(level=0)
+        non_index_columns = colors_boundary_coord.columns.difference([0]).tolist()
+        colors_boundary_coord = colors_boundary_coord.reindex(columns=non_index_columns + [0])
 
-    ### Сплющивание массивов
-    results = [
-        [style_names] + list(collapse(row, levels=1))
-        for row in colors_boundary_coord.values.tolist()
-    ]
+        ### Сплющивание массивов
+        results = [
+            [style_names] + list(collapse(row, levels=1))
+            for row in colors_boundary_coord.values.tolist()
+        ]
+    else:
+        results = []
 
     return results
 
@@ -96,7 +97,7 @@ def get_styles_list_from_mask(mask: pd.DataFrame, style_names: str = 'BACKGROUND
 
 # noinspection PyUnusedLocal
 def build_report(
-        *tables_desc: Tuple[pd.DataFrame, Union[pd.DataFrame, None]],
+        *tables_desc: TableDesc,
         output_format: str = 'pdf',
         dpi: int = 300
 
@@ -106,7 +107,7 @@ def build_report(
 
         https://stackoverflow.com/questions/9622163/save-plot-to-image-file-instead-of-displaying-it-using-matplotlib
 
-        :param tables_desc: Описания таблиц для отчета вида [(<таблица>, <цвета>), ...]
+        :param tables_desc: Описания таблиц для отчета
         :param output_format: Формат отчета
         :param dpi: DPI
     """
@@ -129,12 +130,7 @@ def build_report(
         for n, table_desc in enumerate(tables_desc):
             ### Сформировать таблицу из ее описания
             ### обрабатываем возможность получения одиночного <DataFrame>
-            try:
-                table, colors_mask = table_desc[0], table_desc[1]
-            except (TypeError, ValueError, KeyError):
-                table, colors_mask, = table_desc, None
-
-            ext_styles = get_styles_list_from_mask(colors_mask) if colors_mask is not None else []
+            ext_styles = get_styles_list_from_mask(table_desc.mask)
             styles = TableStyle([
                 ('ALIGN', (1, 1), (-2, -2), 'RIGHT'),
                 ('VALIGN', (0, 0), (0, -1), 'TOP'),
@@ -145,7 +141,7 @@ def build_report(
                 *ext_styles
             ])
 
-            t = Table(table.values.tolist())
+            t = Table(table_desc.data.values.tolist())
             t.setStyle(styles)
             elements.append(t)
 
@@ -160,11 +156,11 @@ def build_report(
 def send_report_email(
         *reports,
         host: str,
-        port: Union[int, str],
+        port: int,
         username: str,
         password: str,
         send_from: str,
-        send_to: Union[str, List[str]],
+        send_to: MAIL_ADDRESSES_TYPE,
         report_format: str,
         verbose_mode: bool = False,
 
@@ -198,74 +194,12 @@ def send_report_email(
     try:
         smtp.login(username, password)
         smtp.sendmail(send_from, send_to, msg.as_string())
-        smtp.close()
+
     except smtplib.SMTPAuthenticationError:
         print('Auth failed!', file=sys.stderr)
+    except smtplib.SMTPSenderRefused:
+        print('Sender address rejected: not owned by auth user!', file=sys.stderr)
     except Exception:
         print('Unexpected error!', file=sys.stderr)
-
     finally:
         smtp.close()
-
-
-
-
-
-
-
-
-def _get_test_set():
-    """ Тестовый набор данных для отчета """
-
-    X1 = pd.DataFrame({
-        'A': [1, 2, 3, 4]*100,
-        'B': [1, 2, 3, 4]*100,
-        'C': [1, 2, 3, 4]*100,
-    })
-    y1 = np.array([1]*4 + [2, 2, 2, 2]*99)
-    colors_mask1 = get_axis_color_mask(X1, y1, color_mapping={1: 'green', 2: 'red'})
-
-    # X2 = pd.DataFrame({'original': [111], 'parsed': [222]})
-
-    results = [
-        [(X1, colors_mask1)]
-    ]*4
-
-    return results
-
-
-
-
-
-if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument('-host', '--host', default='smtp.yandex.com', type=str)
-    parser.add_argument('-port', '--port', default=465, type=int)
-    parser.add_argument('-u', '--username', type=str)
-    parser.add_argument('-p', '--password', type=str)
-    parser.add_argument('-f', '--format', dest='report_format', type=str, default='pdf')
-    parser.add_argument('-dpi', '--dpi', type=int, default=300)
-    parser.add_argument('-from', '--from-addr', dest='from_addr', type=str, default='')
-    parser.add_argument('-to', '--to-addr', dest='to_addr', nargs='*', type=str, default='')
-
-    args = parser.parse_args()
-    user_name = args.username or input('Логин: ')
-    user_pass = args.password or getpass('Пароль: ')
-
-
-    with Pool() as pool:
-        reports = pool.starmap(
-            partial(build_report, output_format=args.report_format, dpi=args.dpi),
-            _get_test_set()
-        )
-
-        send_report_email(
-            *reports,
-            host=args.host,
-            port=args.port,
-            username=user_name,
-            password=user_pass,
-            send_from=args.from_addr,
-            send_to=args.to_addr,
-            report_format=args.report_format
-        )
