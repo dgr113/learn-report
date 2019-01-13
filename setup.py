@@ -5,6 +5,7 @@ from setuptools import setup, find_packages
 
 
 
+
 setup(
     name='learn-report',
     version='0.4.1',
@@ -28,10 +29,10 @@ setup(
         'reportlab',
         'jsonschema',
         'more-itertools',
-        'helpful-vectors==0.4.1'
+        'helpful-vectors'
     ],
     dependency_links=[
-        'https://github.com/dgr113/helpful-vectors/archive/master.zip#egg=helpful_vectors-0.4.1'
+        'https://github.com/dgr113/helpful-vectors/archive/master.zip#egg=helpful_vectors'
     ],
     entry_points={
         'console_scripts': [

@@ -5,6 +5,8 @@ import sys
 import smtplib
 import numpy as np
 import pandas as pd
+from asyncio import get_event_loop, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
@@ -16,8 +18,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from more_itertools import always_iterable, collapse
 from helpful_vectors.functions import get_consecutive_segments
-from learn_report.module.data_structs import TableDesc
-from learn_report.module.type_hints import MAIL_ADDRESSES_TYPE, STYLES_LIST_TYPE, TABLE_MASK_TYPE, VECTORIZED_ARRAY_TYPE
+from learn_report.module.describe.data_structs import TableDesc
+from learn_report.module.describe.type_hints import MAIL_ADDRESSES_TYPE, STYLES_LIST_TYPE, TABLE_MASK_TYPE, VECTORIZED_ARRAY_TYPE
 
 
 
@@ -94,7 +96,6 @@ def get_styles_list_from_mask(mask: TABLE_MASK_TYPE, style_names: str = 'BACKGRO
 
 
 
-
 # noinspection PyUnusedLocal
 def build_report(
         *tables_desc: TableDesc,
@@ -151,7 +152,6 @@ def build_report(
 
 
 
-
 # noinspection PyShadowingNames
 def send_report_email(
         *reports,
@@ -203,3 +203,59 @@ def send_report_email(
         print('Unexpected error!', file=sys.stderr)
     finally:
         smtp.close()
+
+
+
+
+def reports_data_converter(reports: List[List[dict]]) -> List[List[TableDesc]]:
+    """ Приведение типов """
+
+    results = [
+        [
+            TableDesc(pd.DataFrame(table_desc['data']), pd.DataFrame(table_desc['mask']))
+            for table_desc in report
+        ]
+        for report in reports
+    ]
+
+    return results
+
+
+
+
+async def start(
+    data,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    send_from: str,
+    send_to: MAIL_ADDRESSES_TYPE,
+    report_format: str = 'pdf',
+    dpi: int = 1000,
+    executor: Union[ThreadPoolExecutor, ProcessPoolExecutor, None] = None
+
+) -> None:
+
+    loop = get_event_loop()
+
+    # noinspection PyTypeChecker
+    reports_tasks = tuple(map(
+        partial(
+            loop.run_in_executor, executor, build_report,
+            output_format=report_format,
+            dpi=dpi
+        ),
+        reports_data_converter(data)
+    ))
+
+    send_report_email(
+        *[ await fut for fut in as_completed(reports_tasks) ],
+        host=host,
+        port=port,
+        username=username,
+        password=password,
+        send_from=send_from,
+        send_to=send_to,
+        report_format=report_format
+    )

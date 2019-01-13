@@ -3,33 +3,16 @@
 import sys
 import json
 import types
-import pandas as pd
-from typing import List
+from asyncio import get_event_loop
 from jsonschema import Draft4Validator
 from argparse import ArgumentParser
-from functools import partial
 from getpass import getpass
 from multiprocessing.pool import Pool
-from learn_report.module.data_structs import TableDesc
-from learn_report.module.functions import build_report, send_report_email
+from learn_report.module.describe.data_structs import TableDesc
+from learn_report.module.functions import start
 from learn_report.module.settings import SCHEMA_MAPPING, THREAD_WORKERS_COUNT
 from learn_report.module.tests import get_test_set
 
-
-
-
-def reports_data_converter(reports: List[List[dict]]) -> List[List[TableDesc]]:
-    """ Приведение типов """
-
-    results = [
-        [
-            TableDesc(pd.DataFrame(table_desc['data']), pd.DataFrame(table_desc['mask']))
-            for table_desc in report
-        ]
-        for report in reports
-    ]
-
-    return results
 
 
 
@@ -41,6 +24,7 @@ def dataclass_pickle_prepair(*classes) -> None:
 
     for cls in classes:
         setattr(types, cls.__name__, cls)
+
 
 
 
@@ -73,24 +57,24 @@ def main():
         data = json.loads(sources)
         validator.validate(data)
 
-
         dataclass_pickle_prepair(TableDesc)
-        with Pool(THREAD_WORKERS_COUNT) as pool:
-            reports = pool.starmap(
-                partial(build_report, output_format=args.report_format, dpi=args.dpi),
-                reports_data_converter(data['data'])
-            )
 
-            send_report_email(
-                *reports,
+        ### Задача асинхронного получения заголовков и тел писем
+        loop = get_event_loop()
+        with Pool(THREAD_WORKERS_COUNT) as pool:
+            loop.run_until_complete(start(
+                data['data'],
                 host=args.host,
                 port=args.port,
                 username=user_name,
                 password=user_pass,
                 send_from=args.from_addr,
                 send_to=args.to_addr,
-                report_format=args.report_format
-            )
+                report_format=args.report_format,
+                dpi=args.dpi,
+                executor=pool
+            ))
+
 
 
 
