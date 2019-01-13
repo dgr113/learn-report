@@ -1,13 +1,16 @@
 # coding: utf-8
 
+import os
 import sys
 import json
 import types
 from asyncio import get_event_loop
+from concurrent.futures.process import ProcessPoolExecutor
 from jsonschema import Draft4Validator
 from argparse import ArgumentParser
 from getpass import getpass
-from multiprocessing.pool import Pool
+
+sys.path.append( os.path.abspath( os.path.join(os.path.dirname(__file__), '..') ) )  # импорт внешнего пространства имен
 from learn_report.module.describe.data_structs import TableDesc
 from learn_report.module.functions import start
 from learn_report.module.settings import SCHEMA_MAPPING, THREAD_WORKERS_COUNT
@@ -62,7 +65,7 @@ def main():
 
         ### Задача асинхронного получения заголовков и тел писем
         loop = get_event_loop()
-        with Pool(args.process_count) as pool:
+        with ProcessPoolExecutor(args.process_count) as pool:
             loop.run_until_complete(start(
                 data['data'],
                 host=args.host,

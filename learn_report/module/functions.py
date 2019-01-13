@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import io
+import os
 import sys
 import smtplib
 import numpy as np
@@ -18,8 +19,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from more_itertools import always_iterable, collapse
 from helpful_vectors.functions import get_consecutive_segments
-from learn_report.module.describe.data_structs import TableDesc
-from learn_report.module.describe.type_hints import MAIL_ADDRESSES_TYPE, STYLES_LIST_TYPE, TABLE_MASK_TYPE, VECTORIZED_ARRAY_TYPE
+
+sys.path.append( os.path.abspath( os.path.join(os.path.dirname(__file__), '..') ) )  # импорт внешнего пространства имен
+from .describe.data_structs import TableDesc
+from .describe.type_hints import MAIL_ADDRESSES_TYPE, STYLES_LIST_TYPE, TABLE_MASK_TYPE, VECTORIZED_ARRAY_TYPE
 
 
 
@@ -240,22 +243,23 @@ async def start(
     loop = get_event_loop()
 
     # noinspection PyTypeChecker
-    reports_tasks = tuple(map(
+    reports_tasks = list(map(
         partial(
             loop.run_in_executor, executor, build_report,
-            output_format=report_format,
-            dpi=dpi
+            report_format,
+            dpi
         ),
         reports_data_converter(data)
     ))
 
-    send_report_email(
-        *[ await fut for fut in as_completed(reports_tasks) ],
-        host=host,
-        port=port,
-        username=username,
-        password=password,
-        send_from=send_from,
-        send_to=send_to,
-        report_format=report_format
-    )
+
+    # send_report_email(
+    #     *[ await fut for fut in as_completed(reports_tasks) ],
+    #     host=host,
+    #     port=port,
+    #     username=username,
+    #     password=password,
+    #     send_from=send_from,
+    #     send_to=send_to,
+    #     report_format=report_format
+    # )
