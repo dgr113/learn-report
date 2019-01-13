@@ -36,6 +36,7 @@ def main():
     parser.add_argument('-p', '--password', type=str)
     parser.add_argument('-f', '--format', dest='report_format', type=str, default='pdf')
     parser.add_argument('-dpi', '--dpi', type=int, default=300)
+    parser.add_argument('-ps', '--process-count', dest='process_count', type=int, default=THREAD_WORKERS_COUNT)
     parser.add_argument('-from', '--from-addr', dest='from_addr', type=str, default='')
     parser.add_argument('-to', '--to-addr', dest='to_addr', nargs='*', type=str, default='')
     parser.add_argument('-s', '--sources', dest='sources', nargs='?', help='Sources from json')
@@ -61,7 +62,7 @@ def main():
 
         ### Задача асинхронного получения заголовков и тел писем
         loop = get_event_loop()
-        with Pool(THREAD_WORKERS_COUNT) as pool:
+        with Pool(args.process_count) as pool:
             loop.run_until_complete(start(
                 data['data'],
                 host=args.host,
