@@ -12,7 +12,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from functools import partial
-from itertools import repeat
+from itertools import repeat, starmap
 from typing import Union, List, Tuple
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -101,9 +101,7 @@ def get_styles_list_from_mask(mask: TABLE_MASK_TYPE, style_names: str = 'BACKGRO
 
 # noinspection PyUnusedLocal
 def build_report(
-        *tables_desc: TableDesc,
-        output_format: str = 'pdf',
-        dpi: int = 300
+        *tables_desc: TableDesc
 
 ) -> bytes:
 
@@ -243,23 +241,18 @@ async def start(
     loop = get_event_loop()
 
     # noinspection PyTypeChecker
-    reports_tasks = list(map(
-        partial(
-            loop.run_in_executor, executor, build_report,
-            report_format,
-            dpi
-        ),
+    reports_tasks = list(starmap(
+        partial(loop.run_in_executor, executor, build_report),
         reports_data_converter(data)
     ))
 
-
-    # send_report_email(
-    #     *[ await fut for fut in as_completed(reports_tasks) ],
-    #     host=host,
-    #     port=port,
-    #     username=username,
-    #     password=password,
-    #     send_from=send_from,
-    #     send_to=send_to,
-    #     report_format=report_format
-    # )
+    send_report_email(
+        *[ await fut for fut in as_completed(reports_tasks) ],
+        host=host,
+        port=port,
+        username=username,
+        password=password,
+        send_from=send_from,
+        send_to=send_to,
+        report_format=report_format
+    )
