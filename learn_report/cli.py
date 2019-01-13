@@ -65,19 +65,24 @@ def main():
 
         ### Задача асинхронного получения заголовков и тел писем
         loop = get_event_loop()
-        with ProcessPoolExecutor(args.process_count) as pool:
-            loop.run_until_complete(start(
-                data['data'],
-                host=args.host,
-                port=args.port,
-                username=user_name,
-                password=user_pass,
-                send_from=args.from_addr,
-                send_to=args.to_addr,
-                report_format=args.report_format,
-                dpi=args.dpi,
-                executor=pool
-            ))
+        try:
+            with ProcessPoolExecutor(args.process_count) as pool:
+                loop.run_until_complete(start(
+                    data['data'],
+                    host=args.host,
+                    port=args.port,
+                    username=user_name,
+                    password=user_pass,
+                    send_from=args.from_addr,
+                    send_to=args.to_addr,
+                    report_format=args.report_format,
+                    dpi=args.dpi,
+                    executor=pool,
+                    loop=loop
+                ))
+
+        finally:
+            loop.close()
 
 
 

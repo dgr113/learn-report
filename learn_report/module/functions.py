@@ -6,7 +6,7 @@ import sys
 import smtplib
 import numpy as np
 import pandas as pd
-from asyncio import get_event_loop, as_completed
+from asyncio import get_event_loop, gather, set_event_loop, AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
@@ -234,25 +234,34 @@ async def start(
     send_to: MAIL_ADDRESSES_TYPE,
     report_format: str = 'pdf',
     dpi: int = 1000,
-    executor: Union[ThreadPoolExecutor, ProcessPoolExecutor, None] = None
+    executor: Union[ThreadPoolExecutor, ProcessPoolExecutor, None] = None,
+    loop: Union[AbstractEventLoop, None] = None
 
 ) -> None:
 
-    loop = get_event_loop()
+    if not loop:
+        loop = get_event_loop()
+    else:
+        set_event_loop(loop)
 
-    # noinspection PyTypeChecker
-    reports_tasks = list(starmap(
-        partial(loop.run_in_executor, executor, build_report),
-        reports_data_converter(data)
-    ))
 
-    send_report_email(
-        *[ await fut for fut in as_completed(reports_tasks) ],
-        host=host,
-        port=port,
-        username=username,
-        password=password,
-        send_from=send_from,
-        send_to=send_to,
-        report_format=report_format
-    )
+    try:
+        reports_tasks = starmap(
+            partial(loop.run_in_executor, executor, build_report),
+            reports_data_converter(data)
+        )
+
+        send_report_email(
+            *await gather(*reports_tasks),
+            host=host,
+            port=port,
+            username=username,
+            password=password,
+            send_from=send_from,
+            send_to=send_to,
+            report_format=report_format
+        )
+
+    finally:
+        if not loop:
+            loop.close()
