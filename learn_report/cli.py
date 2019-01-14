@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 from getpass import getpass
 
 from learn_report.module.describe.data_structs import TableDesc
-from learn_report.module.functions import start
+from learn_report.module.functions import start_async
 from learn_report.module.settings import SCHEMA_MAPPING, THREAD_WORKERS_COUNT
 from learn_report.module.tests import get_test_set
 
@@ -66,7 +66,7 @@ def main():
         loop = get_event_loop()
         try:
             with ProcessPoolExecutor(args.process_count) as pool:
-                loop.run_until_complete(start(
+                loop.run_until_complete(start_async(
                     data['data'],
                     host=args.host,
                     port=args.port,

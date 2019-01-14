@@ -226,7 +226,43 @@ def reports_data_converter(reports: List[List[dict]]) -> List[List[TableDesc]]:
 
 
 
-async def start(
+def start(
+        data,
+        host: str,
+        port: int,
+        username: str,
+        password: str,
+        send_from: str,
+        send_to: MAIL_ADDRESSES_TYPE,
+        report_format: str = 'pdf',
+        dpi: int = 1000,
+        executor: Union[ThreadPoolExecutor, ProcessPoolExecutor, None] = None,
+        loop: Union[AbstractEventLoop, None] = None
+
+) -> None:
+
+    pass
+
+    # reports_tasks = starmap(
+    #     partial(loop.run_in_executor, executor, build_report),
+    #     reports_data_converter(data)
+    # )
+    #
+    # send_report_email(
+    #     *await gather(*reports_tasks),
+    #     host=host,
+    #     port=port,
+    #     username=username,
+    #     password=password,
+    #     send_from=send_from,
+    #     send_to=send_to,
+    #     report_format=report_format
+    # )
+
+
+
+
+async def start_async(
     data,
     host: str,
     port: int,
