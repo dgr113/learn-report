@@ -3,6 +3,8 @@
 import io
 import sys
 import smtplib
+import types
+
 import numpy as np
 import pandas as pd
 from asyncio import get_event_loop, gather, set_event_loop, AbstractEventLoop
@@ -22,6 +24,17 @@ from helpful_vectors.functions import get_consecutive_segments
 from learn_report.module.describe.data_structs import TableDesc
 from learn_report.module.describe.type_hints import MAIL_ADDRESSES_TYPE, STYLES_LIST_TYPE, TABLE_MASK_TYPE, VECTORIZED_ARRAY_TYPE
 
+
+
+
+def dataclass_pickle_prepair(*classes) -> None:
+    """ Подготовка некоторых классов для сериализации (namedtuple, dataclass)
+
+        :type classes: объекты классов
+    """
+
+    for cls in classes:
+        setattr(types, cls.__name__, cls)
 
 
 
@@ -276,6 +289,8 @@ async def start_async(
     loop: Union[AbstractEventLoop, None] = None
 
 ) -> None:
+
+    dataclass_pickle_prepair(TableDesc)
 
     if not loop:
         loop = get_event_loop()
