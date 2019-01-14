@@ -1,7 +1,6 @@
 # coding: utf-8
 
 import io
-import os
 import sys
 import smtplib
 import numpy as np
@@ -20,9 +19,9 @@ from email.mime.application import MIMEApplication
 from more_itertools import always_iterable, collapse
 from helpful_vectors.functions import get_consecutive_segments
 
-sys.path.append( os.path.abspath( os.path.join(os.path.dirname(__file__), '..') ) )  # импорт внешнего пространства имен
-from .describe.data_structs import TableDesc
-from .describe.type_hints import MAIL_ADDRESSES_TYPE, STYLES_LIST_TYPE, TABLE_MASK_TYPE, VECTORIZED_ARRAY_TYPE
+from learn_report.module.describe.data_structs import TableDesc
+from learn_report.module.describe.type_hints import MAIL_ADDRESSES_TYPE, STYLES_LIST_TYPE, TABLE_MASK_TYPE, VECTORIZED_ARRAY_TYPE
+
 
 
 
@@ -162,7 +161,7 @@ def send_report_email(
         password: str,
         send_from: str,
         send_to: MAIL_ADDRESSES_TYPE,
-        report_format: str,
+        report_format: str = 'pdf',
         verbose_mode: bool = False,
 
 ) -> None:
@@ -193,6 +192,9 @@ def send_report_email(
             print('Warning! Mail server not supported TTLS', file=sys.stderr)
 
     try:
+        ### Заменяем возможные пустые поля аутентификации, т.к они приводят к ошибке типов (неинформативно)
+        username = username or 'username'
+        password = password or 'password'
         smtp.login(username, password)
         smtp.sendmail(send_from, send_to, msg.as_string())
 

@@ -1,6 +1,5 @@
 # coding: utf-8
 
-import os
 import sys
 import json
 import types
@@ -10,11 +9,11 @@ from jsonschema import Draft4Validator
 from argparse import ArgumentParser
 from getpass import getpass
 
-sys.path.append( os.path.abspath( os.path.join(os.path.dirname(__file__), '..') ) )  # импорт внешнего пространства имен
 from learn_report.module.describe.data_structs import TableDesc
 from learn_report.module.functions import start
 from learn_report.module.settings import SCHEMA_MAPPING, THREAD_WORKERS_COUNT
 from learn_report.module.tests import get_test_set
+
 
 
 
@@ -35,8 +34,8 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('-host', '--host', default='smtp.yandex.com', type=str)
     parser.add_argument('-port', '--port', default=465, type=int)
-    parser.add_argument('-u', '--username', type=str)
-    parser.add_argument('-p', '--password', type=str)
+    parser.add_argument('-u', '--username', type=str, default='')
+    parser.add_argument('-p', '--password', type=str, default='')
     parser.add_argument('-f', '--format', dest='report_format', type=str, default='pdf')
     parser.add_argument('-dpi', '--dpi', type=int, default=300)
     parser.add_argument('-ps', '--process-count', dest='process_count', type=int, default=THREAD_WORKERS_COUNT)
@@ -71,10 +70,10 @@ def main():
                     data['data'],
                     host=args.host,
                     port=args.port,
-                    username=user_name,
-                    password=user_pass,
                     send_from=args.from_addr,
                     send_to=args.to_addr,
+                    username=user_name,
+                    password=user_pass,
                     report_format=args.report_format,
                     dpi=args.dpi,
                     executor=pool,

@@ -5,7 +5,6 @@ from setuptools import setup, find_packages
 
 
 
-
 setup(
     name='learn-report',
     version='0.4.1',
@@ -34,9 +33,12 @@ setup(
     dependency_links=[
         'https://github.com/dgr113/helpful-vectors/archive/master.zip#egg=helpful_vectors'
     ],
+    data_files=[
+        ('/learn_report/module', ['learn_report/module/_get.json'])
+    ],
     entry_points={
         'console_scripts': [
-            'learn-report-cli=learn_report.cli:main'
+            'learn-report-cli = learn_report.cli:main'
         ],
     },
     include_package_data=True,
