@@ -34,7 +34,7 @@ setup(
         'https://github.com/dgr113/helpful-vectors/archive/master.zip#egg=helpful_vectors'
     ],
     data_files=[
-        ('/learn_report/module', ['learn_report/module/_get.json'])
+        ('_get.json', ['learn_report/module/_get.json'])
     ],
     entry_points={
         'console_scripts': [
