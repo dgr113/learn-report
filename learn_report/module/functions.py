@@ -4,13 +4,14 @@ import io
 import sys
 import smtplib
 import types
-
 import numpy as np
 import pandas as pd
 from asyncio import get_event_loop, gather, set_event_loop, AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from functools import partial
 from itertools import repeat, starmap
@@ -20,14 +21,16 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from more_itertools import always_iterable, collapse
 from helpful_vectors.functions import get_consecutive_segments
-
 from learn_report.module.describe.data_structs import TableDesc
 from learn_report.module.describe.type_hints import MAIL_ADDRESSES_TYPE, STYLES_LIST_TYPE, TABLE_MASK_TYPE, VECTORIZED_ARRAY_TYPE
+from learn_report.settings import DEFAULT_FONT_PATH
+
+pdfmetrics.registerFont(TTFont('DefaultFont', DEFAULT_FONT_PATH))
 
 
 
 
-def dataclass_pickle_prepair(*classes) -> None:
+def _dataclass_pickle_prepair(*classes) -> None:
     """ Подготовка некоторых классов для сериализации (namedtuple, dataclass)
 
         :type classes: объекты классов
@@ -35,6 +38,18 @@ def dataclass_pickle_prepair(*classes) -> None:
 
     for cls in classes:
         setattr(types, cls.__name__, cls)
+
+
+
+def _get_box_coords(x, start_col: int = 0, end_col: int = 1) -> List[Tuple[int, int]]:
+    """ Получить координаты левой верхней и правой нижней точки прямоугольной области """
+
+    results = list(zip(
+        [start_col, end_col],
+        np.percentile(x, [0, 100]).astype(int)
+    ))
+
+    return results
 
 
 
@@ -66,19 +81,6 @@ def get_axis_color_mask(
             X_mask.iloc[:, (y == label)] = color
 
     return X_mask.values
-
-
-
-
-def _get_box_coords(x, start_col: int = 0, end_col: int = 1) -> List[Tuple[int, int]]:
-    """ Получить координаты левой верхней и правой нижней точки прямоугольной области """
-
-    results = list(zip(
-        [start_col, end_col],
-        np.percentile(x, [0, 100]).astype(int)
-    ))
-
-    return results
 
 
 
@@ -126,6 +128,7 @@ def build_report(
         :param dpi: DPI
     """
 
+    # s_sleep(5)
     with io.BytesIO() as buffer:
         doc = SimpleDocTemplate(
             buffer,
@@ -152,6 +155,7 @@ def build_report(
                 ('VALIGN', (0, -1), (-1, -1), 'MIDDLE'),
                 ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.black),
                 ('BOX', (0, 0), (-1, -1), 0.25, colors.black),
+                ('FONTNAME', (0, 0), (2, 2), 'DefaultFont'),
                 *ext_styles
             ])
 
@@ -167,7 +171,6 @@ def build_report(
 
 # noinspection PyShadowingNames
 def send_report_email(
-        *reports,
         host: str,
         port: int,
         username: str,
@@ -175,11 +178,14 @@ def send_report_email(
         send_from: str,
         send_to: MAIL_ADDRESSES_TYPE,
         report_format: str = 'pdf',
-        verbose_mode: bool = False,
+        # verbose_mode: bool = False,
+        *reports
 
 ) -> None:
 
     """ Отправить отчет с вложением """
+
+    verbose_mode: bool = False
 
     msg = MIMEMultipart()
     msg['From'] = send_from
@@ -239,41 +245,6 @@ def reports_data_converter(reports: List[List[dict]]) -> List[List[TableDesc]]:
 
 
 
-def start(
-        data,
-        host: str,
-        port: int,
-        username: str,
-        password: str,
-        send_from: str,
-        send_to: MAIL_ADDRESSES_TYPE,
-        report_format: str = 'pdf',
-        dpi: int = 1000,
-        executor: Union[ThreadPoolExecutor, ProcessPoolExecutor, None] = None,
-        loop: Union[AbstractEventLoop, None] = None
-
-) -> None:
-
-    pass
-
-    # reports_tasks = starmap(
-    #     partial(loop.run_in_executor, executor, build_report),
-    #     reports_data_converter(data)
-    # )
-    #
-    # send_report_email(
-    #     *await gather(*reports_tasks),
-    #     host=host,
-    #     port=port,
-    #     username=username,
-    #     password=password,
-    #     send_from=send_from,
-    #     send_to=send_to,
-    #     report_format=report_format
-    # )
-
-
-
 
 async def start_async(
     data,
@@ -290,7 +261,7 @@ async def start_async(
 
 ) -> None:
 
-    dataclass_pickle_prepair(TableDesc)
+    _dataclass_pickle_prepair(TableDesc)
 
     if not loop:
         loop = get_event_loop()
@@ -299,20 +270,23 @@ async def start_async(
 
 
     try:
-        reports_tasks = starmap(
+        reports = await gather(*starmap(
             partial(loop.run_in_executor, executor, build_report),
             reports_data_converter(data)
-        )
+        ))
 
-        send_report_email(
-            *await gather(*reports_tasks),
-            host=host,
-            port=port,
-            username=username,
-            password=password,
-            send_from=send_from,
-            send_to=send_to,
-            report_format=report_format
+        # noinspection PyTypeChecker
+        await loop.run_in_executor(
+            executor,
+            send_report_email,
+            host,
+            port,
+            username,
+            password,
+            send_from,
+            send_to,
+            report_format,
+            *reports,
         )
 
     finally:

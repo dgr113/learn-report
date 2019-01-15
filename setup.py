@@ -34,7 +34,8 @@ setup(
         'https://github.com/dgr113/helpful-vectors/archive/master.zip#egg=helpful_vectors'
     ],
     data_files=[
-        ('_get.json', ['learn_report/module/_get.json'])
+        ('module', ['learn_report/module/_get.json']),
+        ('sources/fonts', ['learn_report/sources/fonts/FreeSans.ttf'])
     ],
     entry_points={
         'console_scripts': [
