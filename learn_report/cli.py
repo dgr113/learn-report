@@ -22,7 +22,8 @@ async def func(executor):
     parser.add_argument('-port', '--port', default=465, type=int)
     parser.add_argument('-u', '--username', type=str, default='')
     parser.add_argument('-p', '--password', type=str, default='')
-    parser.add_argument('-f', '--format', dest='report_format', type=str, default='pdf')
+    parser.add_argument('-width', '--width', dest='report_width', type=int, default=210, help='Report width in millimeters')
+    parser.add_argument('-height', '--height', dest='report_height', type=int, default=297, help='Report height in millimeters')
     parser.add_argument('-ps', '--process-count', dest='process_count', type=int, default=THREAD_WORKERS_COUNT)
     parser.add_argument('-from', '--from-addr', dest='from_addr', type=str, default='')
     parser.add_argument('-to', '--to-addr', dest='to_addr', nargs='*', type=str, default='')
@@ -55,7 +56,8 @@ async def func(executor):
             send_to=args.to_addr,
             username=user_name,
             password=user_pass,
-            report_format=args.report_format,
+            report_width=args.report_width,
+            report_height=args.report_height,
             executor=executor,
             loop=None
         ))

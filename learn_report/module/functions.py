@@ -10,6 +10,7 @@ from asyncio import get_event_loop, gather, set_event_loop, AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.units import mm, inch
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
@@ -116,30 +117,30 @@ def get_styles_list_from_mask(mask: TABLE_MASK_TYPE, style_names: str = 'BACKGRO
 
 
 def build_report(
-    *tables_desc: TableDesc
+    *tables_desc: TableDesc,
+    width: int,
+    height: int,
 
 ) -> bytes:
 
     """ Сформировать отчет
 
-        https://stackoverflow.com/questions/9622163/save-plot-to-image-file-instead-of-displaying-it-using-matplotlib
-
         :param tables_desc: Описания таблиц для отчета
-        :param output_format: Формат отчета
-        :param dpi: DPI
+        :param width: Ширина листа
+        :param height: Высота листа
     """
 
     with io.BytesIO() as buffer:
         doc = SimpleDocTemplate(
             buffer,
-            pagesize=A4,
+            pagesize=(width*mm, height*mm),
             rightMargin=30,
             leftMargin=30,
             topMargin=30,
             bottomMargin=18
         )
 
-        doc.pagesize = landscape(A4)
+        # doc.pagesize = landscape(A4)
         elements = []
 
         common_styles = [
@@ -178,7 +179,6 @@ def send_report_email(
         password: str,
         send_from: str,
         send_to: MAIL_ADDRESSES_TYPE,
-        report_format: str = 'pdf',
         verbose_mode: bool = False
 
 ) -> None:
@@ -192,7 +192,7 @@ def send_report_email(
     msg.attach(MIMEText('Test message'))
 
     for n, report in enumerate(reports, start=1):
-        filename = 'report_{0}.{1}'.format(str(n), report_format)
+        filename = 'report_{0}.{1}'.format(str(n), 'pdf')
         attachedfile = MIMEApplication(report)
         attachedfile.add_header('content-disposition', 'attachment', filename=filename)
         msg.attach(attachedfile)
@@ -252,7 +252,8 @@ async def start_async(
     password: str,
     send_from: str,
     send_to: MAIL_ADDRESSES_TYPE,
-    report_format: str = 'pdf',
+    report_width: int = 210,
+    report_height: int = 297,
     executor: Union[ThreadPoolExecutor, ProcessPoolExecutor, None] = None,
     loop: Union[AbstractEventLoop, None] = None
 
@@ -270,8 +271,12 @@ async def start_async(
     exec_async = partial(loop.run_in_executor, executor)
 
     ### Подготавливаем шаблоны (partial) конкретных функций
-    build_report_async = partial(exec_async, build_report)
-    send_report_async = partial(
+    build_report_templ = partial(
+        build_report,
+        width=report_width,
+        height=report_height
+    )
+    send_report_templ = partial(
         send_report_email,
         host=host,
         port=port,
@@ -279,17 +284,16 @@ async def start_async(
         password=password,
         send_from=send_from,
         send_to=send_to,
-        report_format=report_format,
         verbose_mode=False
     )
 
     ### Создаем отчеты и отправляем их
     try:
         reports = await gather(
-            *starmap(build_report_async, reports_data_converter(data))
+            *starmap(partial(exec_async, build_report_templ), reports_data_converter(data))
         )
 
-        await partial(exec_async, send_report_async)( *reports )
+        await partial(exec_async, send_report_templ)( *reports )
 
     finally:
         if not loop:
