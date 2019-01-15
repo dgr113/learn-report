@@ -29,7 +29,6 @@ pdfmetrics.registerFont(TTFont('DefaultFont', DEFAULT_FONT_PATH))
 
 
 
-
 def _dataclass_pickle_prepair(*classes) -> None:
     """ Подготовка некоторых классов для сериализации (namedtuple, dataclass)
 
@@ -38,6 +37,9 @@ def _dataclass_pickle_prepair(*classes) -> None:
 
     for cls in classes:
         setattr(types, cls.__name__, cls)
+
+
+_dataclass_pickle_prepair(TableDesc)
 
 
 
@@ -113,9 +115,8 @@ def get_styles_list_from_mask(mask: TABLE_MASK_TYPE, style_names: str = 'BACKGRO
 
 
 
-# noinspection PyUnusedLocal
 def build_report(
-        *tables_desc: TableDesc
+    *tables_desc: TableDesc
 
 ) -> bytes:
 
@@ -170,6 +171,7 @@ def build_report(
 
 # noinspection PyShadowingNames
 def send_report_email(
+        *reports,
         host: str,
         port: int,
         username: str,
@@ -177,14 +179,11 @@ def send_report_email(
         send_from: str,
         send_to: MAIL_ADDRESSES_TYPE,
         report_format: str = 'pdf',
-        # verbose_mode: bool = False,
-        *reports
+        verbose_mode: bool = False
 
 ) -> None:
 
     """ Отправить отчет с вложением """
-
-    verbose_mode: bool = False
 
     msg = MIMEMultipart()
     msg['From'] = send_from
@@ -259,33 +258,38 @@ async def start_async(
 
 ) -> None:
 
-    _dataclass_pickle_prepair(TableDesc)
+    """ Запустить асинхронную процедуру формирования и отправки отчетов """
 
+    ### Если цикл событий не передан, то создаем его, иначе - устанавливаем переданный цикл активным
     if not loop:
         loop = get_event_loop()
     else:
         set_event_loop(loop)
 
+    ### Определяем асинхронных исполнителей (executor)
+    exec_async = partial(loop.run_in_executor, executor)
 
+    ### Подготавливаем шаблоны (partial) конкретных функций
+    build_report_async = partial(exec_async, build_report)
+    send_report_async = partial(
+        send_report_email,
+        host=host,
+        port=port,
+        username=username,
+        password=password,
+        send_from=send_from,
+        send_to=send_to,
+        report_format=report_format,
+        verbose_mode=False
+    )
+
+    ### Создаем отчеты и отправляем их
     try:
-        reports = await gather(*starmap(
-            partial(loop.run_in_executor, executor, build_report),
-            reports_data_converter(data)
-        ))
-
-        # noinspection PyTypeChecker
-        await loop.run_in_executor(
-            executor,
-            send_report_email,
-            host,
-            port,
-            username,
-            password,
-            send_from,
-            send_to,
-            report_format,
-            *reports,
+        reports = await gather(
+            *starmap(build_report_async, reports_data_converter(data))
         )
+
+        await partial(exec_async, send_report_async)( *reports )
 
     finally:
         if not loop:
