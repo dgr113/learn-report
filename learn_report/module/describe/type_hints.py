@@ -8,5 +8,5 @@ from typing import Union, List
 MAIL_ADDRESSES_TYPE = Union[str, List[str]]
 TABLE_DATA_TYPE = pd.DataFrame
 TABLE_MASK_TYPE = Union[pd.DataFrame, None]
-STYLES_LIST_TYPE = List[list]
+STYLES_LIST_TYPE = List[tuple]
 VECTORIZED_ARRAY_TYPE = Union[np.array, pd.Series]

@@ -128,7 +128,6 @@ def build_report(
         :param dpi: DPI
     """
 
-    # s_sleep(5)
     with io.BytesIO() as buffer:
         doc = SimpleDocTemplate(
             buffer,
@@ -142,27 +141,27 @@ def build_report(
         doc.pagesize = landscape(A4)
         elements = []
 
+        common_styles = [
+            ('ALIGN', (1, 1), (-2, -2), 'RIGHT'),
+            ('VALIGN', (0, 0), (0, -1), 'TOP'),
+            ('ALIGN', (0, -1), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, -1), (-1, -1), 'MIDDLE'),
+            ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.black),
+            ('BOX', (0, 0), (-1, -1), 0.25, colors.black),
+            ('FONTNAME', (0, 0), (-1, -1), 'DefaultFont'),
+        ]
+
         ### Заполняем каждую область своей таблицей из <tables_desc>
         ### обрабатываем возможность 1 (не итерируемой оси), в случае если <tables_desc> состоит из одного элемента
         for n, table_desc in enumerate(tables_desc):
             ### Сформировать таблицу из ее описания
             ### обрабатываем возможность получения одиночного <DataFrame>
             ext_styles = get_styles_list_from_mask(table_desc.mask)
-            styles = TableStyle([
-                ('ALIGN', (1, 1), (-2, -2), 'RIGHT'),
-                ('VALIGN', (0, 0), (0, -1), 'TOP'),
-                ('ALIGN', (0, -1), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, -1), (-1, -1), 'MIDDLE'),
-                ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.black),
-                ('BOX', (0, 0), (-1, -1), 0.25, colors.black),
-                ('FONTNAME', (0, 0), (2, 2), 'DefaultFont'),
-                *ext_styles
-            ])
+            styles = TableStyle(common_styles + ext_styles)
 
             t = Table(table_desc.data.values.tolist())
             t.setStyle(styles)
             elements.append(t)
-
 
         doc.build(elements)
         return buffer.getvalue()
@@ -255,7 +254,6 @@ async def start_async(
     send_from: str,
     send_to: MAIL_ADDRESSES_TYPE,
     report_format: str = 'pdf',
-    dpi: int = 1000,
     executor: Union[ThreadPoolExecutor, ProcessPoolExecutor, None] = None,
     loop: Union[AbstractEventLoop, None] = None
 
